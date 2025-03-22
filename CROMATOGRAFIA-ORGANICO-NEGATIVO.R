@@ -18,7 +18,7 @@ library(CAMERA)
 
 # Ler e processar os dados com o pacote xcms que vamos usar
 
-data_dir <- "E:/UEM/Resultados/Cafe_31_01_25/POSITIVO/ORGANICO/mzml/R/QC"
+data_dir <- "E:/UEM/Resultados/Cafe_31_01_25/NEGATIVO/ORGANICO/mzml/R/QC"
 files <- sort(list.files(data_dir, pattern = "\\.mzML", full.names = TRUE))
 print(files)
 raw_data <- readMSData(files, mode = "onDisk")
@@ -37,7 +37,7 @@ bpc <- chromatogram(raw_data, aggregationFun = "max")
 
 plot(bpc, 
      col = "goldenrod", 
-     main = "BPC - QC in Organic Positive Mode", 
+     main = "BPC - QC in Organic Phase - Negative Mode", 
      xlab = "Retetion Time (s)", 
      ylab = "Intensity", 
      xlim = c(0, 1200), 
@@ -45,7 +45,7 @@ plot(bpc,
 
 #Visualizando o branco
 
-data_dir2 <- "E:/UEM/Resultados/Cafe_31_01_25/POSITIVO/ORGANICO/mzml/R/Blancks"
+data_dir2 <- "E:/UEM/Resultados/Cafe_31_01_25/NEGATIVO/ORGANICO/mzml/R/Blanck"
 files2 <- sort(list.files(data_dir2, pattern = "\\.mzML", full.names = TRUE))
 print(files2)
 raw_data2 <- readMSData(files2, mode = "onDisk")
@@ -65,9 +65,9 @@ legend("topright",
 #Ajustar os Parâmetros COM TESTES 
 
 # Definir os parâmetros de CentWave
-cwp_low <- CentWaveParam(ppm = 10, peakwidth = c(5, 20), snthresh = 5, fitgauss = TRUE)
-cwp_mid <- CentWaveParam(ppm = 10, peakwidth = c(5, 20), snthresh = 10, fitgauss = TRUE)
-cwp_high <- CentWaveParam(ppm = 10, peakwidth = c(5, 20), snthresh = 20, fitgauss = TRUE)
+cwp_low <- CentWaveParam(ppm = 10, peakwidth = c(5, 20), snthresh = 5, noise = 1000, fitgauss = TRUE)
+cwp_mid <- CentWaveParam(ppm = 10, peakwidth = c(5, 20), snthresh = 10, noise = 1000, fitgauss = TRUE)
+cwp_high <- CentWaveParam(ppm = 10, peakwidth = c(5, 20), snthresh = 20, noise = 1000, fitgauss = TRUE)
 
 # Aplicar o findChromPeaks usando lapply em cada conjunto de dados filtrados
 xset_low_list <- findChromPeaks(raw_data, param = cwp_low)
@@ -83,7 +83,7 @@ bpc_t5 <- chromatogram(xset_low_list , aggregationFun = "max")
 bpc_t10 <- chromatogram(xset_mid_list, aggregationFun = "max")
 bpc_t20<- chromatogram(xset_high_list, aggregationFun = "max")
 
-par(mfrow = c(1, 3))  # Define layout: 1 linha, 3 colunas
+par(mfrow = c(1, 3))  # Define layout: 1 linha, 2 colunas
 par(mfrow = c(1, 1))  # Define layout: 1 linha, 1 colunas
 
 plot(bpc_t5, col = "firebrick", main = "Comparação dos Parâmetros - SNTHRESH 5",
@@ -120,7 +120,7 @@ bpc_def <- chromatogram(xset_default_list, aggregationFun = "max")
 bpc_n1 <- chromatogram(xset_noise1_list, aggregationFun = "max")
 bpc_n2 <- chromatogram(xset_noise2_list, aggregationFun = "max")
 
-plot(bpc_def, col = "firebrick", main = "Comparação dos Parâmetros - Noise 500",
+plot(bpc_def, col = "firebrick", main = "Comparação dos Parâmetros - Noise 1000",
      xlab = "Retention Time (s)", ylab = "Intensity", xlim = c(0, 1200), 
      ylim = c(0, 1.5e6))
 
@@ -133,11 +133,10 @@ plot(bpc_n2, col = "seagreen", main = "Comparação dos Parâmetros - Noise 5000
      ylim = c(0, 1.5e6))
 
 
-#O VALOR DE NOISE PARA DESCARTE DE RUIDO É DE 1000, pois apesar de aperecer um picos de ruido, eu consigo usar a função adjustedRtime. os brancos serão reduzidos com a matriz.
-
+#O VALOR DE NOISE PARA DESCARTE DE RUIDO É DE 500, padrão da função
 #tempo de retenção (nao esquecer de carregar o setup escolhido)
 
-data_dir_3 <- "E:/UEM/Resultados/Cafe_31_01_25/POSITIVO/ORGANICO/mzml"
+data_dir_3 <- "E:/UEM/Resultados/Cafe_31_01_25/NEGATIVO/ORGANICO/mzml"
 
 files_amostras <- sort(list.files(data_dir_3, pattern = "\\.mzML", full.names = TRUE))
 
@@ -146,7 +145,7 @@ print(files_amostras)
 raw_data_completed <- readMSData(files_amostras, mode = "onDisk")
 
 n <- 3
-I <- 1000
+I <- 10000
 cwp_setup <- CentWaveParam(ppm = 10, mzdiff = -0.001, peakwidth = c(5, 20), snthresh = 10, prefilter = c(n, I), noise = I,  fitgauss = TRUE)
 
 # Aplicando findChromPeaks() para cada conjunto de dados
@@ -200,14 +199,9 @@ chromPeaks(xset_grouped1)
 
 #fill peakings
 
-std_filled <- fillChromPeaks(xset_grouped1, param = FillChromPeaksParam(ppm = 10))
+std_filled <- fillChromPeaks(xset_grouped, param = FillChromPeaksParam(ppm = 10))
 matrix_data <- featureValues(std_filled)
 View(matrix_data)
-
-# Verificar a estrutura da matriz extraída
-head(matrix_data)
-
-#Estatistica já é aqui
 
 #picos [M+] e outros aduteros 
 
@@ -222,9 +216,7 @@ isotope_data <- getPeaklist(xset_annotated)
 head(isotope_data)
 isotope_free_matrix <- as.data.frame(isotope_data)
 View(isotope_free_matrix)
-
-
-
+write_xlsx(isotope_free_matrix, "isotope_free_organic_negative.xlsx")
 
 # Converter colunas vazias em NA (caso ainda não tenha sido feito)
 isotope_free_matrix[, 58][isotope_free_matrix[, 58] == ""] <- NA
@@ -241,113 +233,123 @@ View(isotope_mplus)
 resume <- isotope_mplus[,-c(10:57)]
 View(resume)
 
-# Criar uma cópia da matriz para armazenar os resultados
-isotope_sums <- isotope_mplus  
+#PENSAR SE DEVE SOMAR, MAS NA REAL, M/Z DOS CONTAMINANTES
 
-# Para cada linha de isotope_mplus, somar as intensidades de [M+1]+ e [M+2]+ do mesmo grupo
-for (i in 1:nrow(isotope_mplus)) {
-  
-  # Identificar o padrão do M+ atual (exemplo: "[1][M]+")
-  current_mplus <- isotope_mplus[i, 58]
-  
-  # Criar os padrões correspondentes a [M+1]+ e [M+2]+
-  m_plus_1 <- gsub("\\[M\\]\\+", "[M+1]+", current_mplus)
-  m_plus_2 <- gsub("\\[M\\]\\+", "[M+2]+", current_mplus)
-  
-  # Encontrar as linhas correspondentes em isotope_free_matrix
-  matching_rows <- which(isotope_free_matrix[, 58] %in% c(m_plus_1, m_plus_2))
-  
-  # Definir apenas as colunas de 10 a 57 para a soma
-  cols_to_sum <- 10:57  
-  
-  # Somar as intensidades das linhas correspondentes
-  if (length(matching_rows) > 0) {
-    isotope_sums[i, cols_to_sum] <- isotope_sums[i, cols_to_sum] + 
-      colSums(isotope_free_matrix[matching_rows, cols_to_sum], na.rm = TRUE)
-  }
+# Substituir valores vazios por NA
+isotope_mplus[isotope_mplus == ""] <- NA  
+
+# Substituir NA por 0
+isotope_mplus[is.na(isotope_mplus)] <- 0  
+
+# Eliminar todas as linhas onde a coluna 59 seja diferente de 0
+isotope_mplus <- isotope_mplus[isotope_mplus[, 59] == 0, ]
+
+# Exibir a matriz modificada
+print(isotope_mplus)
+View(isotope_mplus)
+
+#todos os adutos eliminados
+
+#subir a pasta com contaminantes
+# Carregar os dados
+mz_isotope <- as.numeric(isotope_mplus[, 1])  # m/z do tratamento estatístico
+mz_contaminantes <- Pasta2[, 1]   # m/z dos contaminantes
+
+# Remover valores NA
+mz_isotope <- mz_isotope[!is.na(mz_isotope)]
+mz_contaminantes <- mz_contaminantes[!is.na(mz_contaminantes)]
+
+# Verificar se ainda há NAs após a limpeza
+if (any(is.na(mz_isotope)) || any(is.na(mz_contaminantes))) {
+  stop("Existem valores NA nos dados após a limpeza.")
 }
 
-View(isotope_mplus)
-View(isotope_sums)
-write_xlsx(isotope_sums, "isotope_sums.xlsx")
+# Identificar quais m/z em isotope_mplus estão dentro do intervalo de ±0.005 dos contaminantes
+linhas_para_remover <- sapply(mz_isotope, function(x) any(abs(x - mz_contaminantes) <= 0.05))
 
-resume <- isotope_free_matrix[,-c(10:57)]
-View(resume)
+# Remover as linhas em isotope_mplus que estão dentro do intervalo
+isotope_mplus_filtrado <- isotope_mplus[!linhas_para_remover, ]
 
-linhas <- c(5,9,10,11,15,24,26,28,29,33,35,36,65,66,67,68,82,92,102,97)
-novamatrix <- isotope_mplus[-c(linhas), ]
-View(novamatrix)
+# Exibir o número de linhas após a remoção
+cat("Número de linhas após remoção:", nrow(isotope_mplus_filtrado), "\n")
+View(isotope_mplus_filtrado)  # Para visualizar o resultado no RStudio
 
+#ACIMA OS CONTAMINANTES FORAM REMOVIDOS
 # Supondo que as 6 primeiras amostras são os brancos
-blank_values <- novamatrix[,10:15]  # Extrair os brancos
+
+# Supondo que as colunas 10 a 15 são os brancos
+nova_matrix <- isotope_mplus_filtrado
+blank_values <- nova_matrix[, 10:15]  # Extrair os valores dos brancos
 View(blank_values)
 
 # Calcular o maior valor dos brancos para cada m/z (linha)
-max_blank_values <- apply(blank_values, 1, max)
+max_blank_values <- apply(blank_values, 1, max, na.rm = TRUE)
 
-# Subtrair os valores máximos dos brancos das amostras e do controle de qualidade
-novamatrix[, 16:57] <- lapply(novamatrix[, 16:57], as.numeric)
-
-# Verifique se max_blank_values tem o mesmo número de linhas que novamatrix
-if (length(max_blank_values) == nrow(novamatrix)) {
-  # Subtrair os valores máximos dos brancos das amostras
-  for (i in 16:57) {
-    novamatrix[, i] <- novamatrix[, i] - max_blank_values
-  }
+# Verificar se o tamanho de max_blank_values bate com o número de linhas de nova_matrix
+if (length(max_blank_values) == nrow(nova_matrix)) {
+  
+  # Converter as colunas 16 a 57 para numérico
+  nova_matrix[, 16:57] <- lapply(nova_matrix[, 16:57], function(x) as.numeric(as.character(x)))
+  
+  # Subtrair max_blank_values das colunas 16 a 57
+  nova_matrix[, 16:57] <- nova_matrix[, 16:57] - max_blank_values
+  
+  # Substituir NA e valores menores que zero por zero
+  nova_matrix[, 16:57][is.na(nova_matrix[, 16:57]) | nova_matrix[, 16:57] < 0] <- 0
+  
+  # Remover as linhas que possuem apenas zeros entre as colunas 16 e 57
+  nova_matrix <- nova_matrix[apply(nova_matrix[, 16:57], 1, function(x) any(x != 0)), ]
+  
 } else {
-  stop("O número de elementos em max_blank_values não corresponde ao número de linhas em novamatrix.")
+  stop("Erro: O número de valores em max_blank_values não corresponde ao número de linhas da matriz.")
 }
 
-# Substituir NA e valores menores que zero por zero nas colunas 16 a 57
-novamatrix[, 16:57][is.na(novamatrix[, 16:57]) | novamatrix[, 16:57] < 0] <- 0
+View(nova_matrix)
 
-# Remover as linhas que possuem apenas zeros entre as colunas 16 e 58
-novamatrix <- novamatrix[apply(novamatrix[, 16:57], 1, function(x) any(x != 0)), ]
+#Eliminando manualmente
 
-# Função para normalizar por LOESS
-normalize_loess <- function(x) {
-  loess_fit <- loess(x ~ seq_along(x))  # Ajusta um modelo LOESS
-  normalized_values <- predict(loess_fit)  # Prediz os valores normalizados
-  return(normalized_values)
+nova_matrix <- nova_matrix[-c(3,4,6,9,11,12,13,15,16,17,26,37,41,58,56,52,51),]
+
+#normalizacao
+normalize_pareto <- function(x) {
+  mean_x <- mean(x, na.rm = TRUE)  # Calcula a média da variável
+  sd_x <- sd(x, na.rm = TRUE)  # Calcula o desvio padrão
+  pareto_scaled <- (x - mean_x) / sqrt(sd_x)  # Aplica a fórmula de Pareto Scaling
+  return(pareto_scaled)
 }
 
-# Aplicar a normalização LOESS nas colunas 16 a 57
-novamatrix[, 16:57] <- apply(novamatrix[, 16:57], 2, normalize_loess)
+# Aplicar a normalização Pareto nas colunas 16 a 57
+nova_matrix[, 16:57] <- apply(nova_matrix[, 16:57], 2, normalize_pareto)
 
 # Verifique se as colunas foram normalizadas corretamente
-head(novamatrix[, 16:57])
+head(nova_matrix[, 16:57])
 
 #Trocando nome das amostras
 # Criando os nomes fixos para as colunas QC
 colunas_qc <- c("QC1", "QC2", "QC3")
 
 # Atribuindo os novos nomes de coluna para as colunas 16 a 18
-colnames(novamatrix)[16:18] <- colunas_qc
+colnames(nova_matrix)[16:18] <- colunas_qc
 
 # Criando os nomes fixos para as colunas QC
-colunas_cb <- c("CBE1", "CBE2", "QBE3","CBM1", "CBM2", "QBM3","CBV1", "CBV2", "QBV3")
-colnames(novamatrix)[19:27] <- colunas_cb
+colunas_cb <- c("CBE1", "CBE2", "CBE3","CBM1", "CBM2", "QBM3","CBV1", "CBV2", "QBV3")
+colnames(nova_matrix)[19:27] <- colunas_cb
 
 colunas_j <- c("J1", "J2", "J3")
-colnames(novamatrix)[28:30] <- colunas_j
+colnames(nova_matrix)[28:30] <- colunas_j
 
 colunas_itf <- c("25.1", "25.2", "25.3","35.1","35.2","35.3","45.1","45.2","45.3","55.1","55.2","55.3","65.1","65.2","65.3","75.1","75.2","75.3","85.1","85.2","85.3","95.1","95.2","95.3")
-colnames(novamatrix)[31:54] <- colunas_itf
+colnames(nova_matrix)[31:54] <- colunas_itf
 
-colunas_sp <- c("sp1","sp2","sp3")
-colnames(novamatrix)[55:57] <- colunas_sp
-
-#REPETIR ATÉ CHEGAR NAS 57
-View(novamatrix)
+colunas_sp <- c("SP1","SP2","SP3")
+colnames(nova_matrix)[55:57] <- colunas_sp
+View(nova_matrix)
 
 # Extraindo a coluna de m/z (primeira coluna)
-mz_values <- novamatrix[-c(1,11,13), 1]  # valores de m/z
+mz_values <- nova_matrix[,1]  # valores de m/z
 
-# Selecionando as colunas de 16 a 58 (amostras para PCA)
-data_for_pca <- novamatrix[, 16:57]
-
-data_for_pca <- data_for_pca[,-c(10:12)]
-data_for_pca <- data_for_pca[-c(1,11,13),]
+# Selecionando as colunas de 16 a 57 (amostras para PCA)
+data_for_pca <- nova_matrix[, 16:57]
 
 # Atribuindo os valores de m/z como nomes das linhas
 rownames(data_for_pca) <- mz_values
@@ -355,6 +357,7 @@ View(data_for_pca)
 
 #USAR data_for_pca considerando as triplicatas
 
+#APARTIR DAQUI EH A MEDIA DA TRIPLICATA
 num_cols <- ncol(data_for_pca)
 grouped_matrix <- sapply(seq(1, num_cols, by = 3), function(i) {
   rowMeans(data_for_pca[, i:min(i+2, num_cols)], na.rm = TRUE)  # Evita erro caso o número de colunas não seja múltiplo de 3
@@ -392,6 +395,8 @@ View(grouped_matrix)
 
 
 # Aplicar o PCA (com controle de qualidade)
+View(data_for_pca)
+data_for_pca <- data_for_pca[, -c(10:12)]
 pca_matrix_qc <- t(data_for_pca)
 pca_result_qc <- prcomp(pca_matrix_qc, center = TRUE, scale. = TRUE)
 
@@ -402,8 +407,14 @@ summary(pca_result_qc)
 scores_df_qc <- as.data.frame(pca_result_qc$x)
 scores_df_qc$Sample <- rownames(scores_df_qc)
 
-# Criando um grupo que muda a cada 3 amostras (PLOT DA TRIPLICATAS)
-scores_df_qc$Group <- factor(1:13)
+par(mfrow = c(1, 1))  # Define layout: 1 linha, 1 colunas
+
+# Criar os grupos que mudam a cada 3 amostras
+scores_df_qc$Group <- factor(rep(1:(nrow(scores_df_qc) / 3), each = 3, length.out = nrow(scores_df_qc)), label = group_labels)
+
+group_labels <- c("Grupo A", "Grupo B", "Grupo C", "Grupo D", "Grupo E", 
+                  "Grupo F", "Grupo G", "Grupo H", "Grupo I", "Grupo J",
+                  "Grupo K", "Grupo L", "Grupo M")
 
 ggplot(scores_df_qc, aes(x = PC1, y = PC2, color = Group)) +
   geom_point(size = 4) +
@@ -422,8 +433,8 @@ ggplot(scores_df_qc, aes(x = PC1, y = PC2, color = Group)) +
   scale_color_manual(
     name = "Sample Group",  
     values = c(
-      "red", "blue", "green", "purple", "orange", "pink", "cyan", 
-      "brown", "yellow", "magenta", "gray", "darkgreen", "darkblue","gold"))
+      "firebrick", "blue", "green", "purple", "orange", "pink", "cyan", 
+      "brown", "magenta", "gray", "darkgreen", "darkblue","gold"))
 
 
 #Criar o Kmeans 
@@ -439,21 +450,21 @@ plot(1:10, wcss, type = "b", pch = 19, col = "blue",
      main = "Método do Cotovelo")
 
 set.seed(123) # Garantir reprodutibilidade
-k <- 4 # escolhemos clusters com base no método do cotovelo
-kmeans_result <- kmeans(scores_df_qc[, c("PC1", "PC2")], centers = k, nstart = 25)
+k <- 3 # escolhemos clusters com base no método do cotovelo
+kmeans_result <- kmeans(scores_df_qc[, c("PC1", "PC2","PC3","PC4", "PC5","PC6","PC7", "PC8")], centers = k, nstart = 25)
 
 # Adicionar os clusters ao DataFrame
 scores_df_qc$Cluster <- as.factor(kmeans_result$cluster)
 
 ggplot(scores_df_qc, aes(x = PC1, y = PC2, color = Cluster, label = Sample)) +
   geom_point(size = 4) +
-  geom_text(vjust = -1, size = 4) +  # Diminui o tamanho dos nomes das amostras
-  stat_ellipse(geom = "polygon", alpha = 0.2, level = 4.0, linetype = 4) +
+  geom_text(vjust = -1, size = 4) + 
+  stat_ellipse(geom = "polygon", alpha = 0.2, level = 0.90, linetype = 4) +
   theme_minimal() +
   ggtitle(label = "K-means Clustering in PCA (With Quality Control)") +
   xlab(paste0("PC1 (", round(100 * summary(pca_result_qc)$importance[2, 1], 1), "%)")) +
   ylab(paste0("PC2 (", round(100 * summary(pca_result_qc)$importance[2, 2], 1), "%)")) +
-  scale_color_manual(values = c("sienna2", "navyblue","red","green")) +
+  scale_color_manual(values = c("sienna2", "navyblue","green")) +
   theme(
     plot.title = element_text(hjust = 0.5),
     panel.grid = element_blank(),
@@ -465,7 +476,7 @@ ggplot(scores_df_qc, aes(x = PC1, y = PC2, color = Cluster, label = Sample)) +
 colours()
 
 # Calcular a matriz de distâncias (usando a matriz PCA reduzida)
-dist_matrix <- dist(scores_df_qc[, c("PC1", "PC2", "PC3")])
+dist_matrix <- dist(scores_df_qc[, c("PC1", "PC2","PC3","PC4", "PC5","PC6","PC7", "PC8")])
 
 # Aplicar o método de agrupamento hierárquico (usando "ward.D2")
 hclust_result <- hclust(dist_matrix, method = "ward.D2")
@@ -474,7 +485,7 @@ hclust_result <- hclust(dist_matrix, method = "ward.D2")
 plot(hclust_result, main = "Dendrogram with QC", 
      xlab = "Samples", sub = "", cex = 0.8)
 
-rect.hclust(hclust_result, k = 3, border = "red")
+rect.hclust(hclust_result, k = 3, border = "steelblue4")
 
 #Loadings
 
@@ -486,19 +497,19 @@ loadings_pc1_pc2 <- loadings_df[, c("PC1", "PC2", "Feature")]
 
 # Selecionar os 10 m/z com maior contribuição (pela soma dos valores absolutos de PC1 e PC2)
 loadings_pc1_pc2$Importance <- abs(loadings_pc1_pc2$PC1) + abs(loadings_pc1_pc2$PC2)
-top20_loadings_qc <- loadings_pc1_pc2[order(-loadings_pc1_pc2$Importance), ][1:20, ]
-View(top20_loadings_qc)
+top10_loadings_qc <- loadings_pc1_pc2[order(-loadings_pc1_pc2$Importance), ][1:10, ]
+View(top10_loadings_qc)
 
-top20_loadings_qc$Feature <- sub("^X", "", top20_loadings_qc$Feature)
+top10_loadings_qc$Feature <- sub("^X", "", top10_loadings_qc$Feature)
 
 # Criar o gráfico corrigido
-ggplot(top20_loadings_qc, aes(x = PC1, y = PC2, color = Feature)) +
+ggplot(top10_loadings_qc, aes(x = PC1, y = PC2, color = Feature)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray") +
   geom_segment(aes(x = 0, y = 0, xend = PC1, yend = PC2), 
                arrow = arrow(length = unit(0.2, "cm")), 
-               size = 1) +
-  scale_color_manual(values = rainbow(length(top20_loadings_qc$Feature))) +  # Escolhe cores para cada Feature
+               linewidth = 1) +
+  scale_color_manual(values = rainbow(length(top10_loadings_qc$Feature))) +  # Escolhe cores para cada Feature
   theme_minimal() +
   ggtitle("Loadings - Top 10 m/z with QC") +
   xlab("PC1 Loadings") +
@@ -508,7 +519,7 @@ ggplot(top20_loadings_qc, aes(x = PC1, y = PC2, color = Feature)) +
         axis.line = element_line(colour = "black"),  
         axis.ticks = element_line(colour = "black"))  
 
-top20_mz <- data.frame(mz = top20_loadings_qc$mz)
+top10_mz <- data.frame(mz = top10_loadings_qc$mz)
 
 # Salvar em um arquivo Excel
 write_xlsx(top20_mz, "top20_loadings_mz_R_positive_organic_cromatografia.xlsx")
@@ -576,58 +587,47 @@ ggplot(tsne_df, aes(x = tSNE1, y = tSNE2, color = Cluster)) +
   stat_ellipse(aes(group = Cluster), level = 0.95, linetype = 2) +  # Adiciona as elipses
   geom_text(aes(label = Sample), vjust = -1, size = 3) +  # Adiciona os nomes das amostras
   theme_minimal() +
-  ggtitle("t-SNE com K-means e Elipses de Agrupamento") +
+  ggtitle("t-SNE Grouping for Positive Mode - Org with QC") +
   xlab("t-SNE 1") +
   ylab("t-SNE 2") +
   theme(plot.title = element_text(hjust = 0.5))
 
-# Garantir que scores_df_qc[[mz_column]] e tsne_df$tSNE1 sejam numéricos
-# Certifique-se de que as amostras estão ordenadas da mesma forma
-# Verifique se o identificador de amostra é o mesmo para PCA e t-SNE
-identificadores_pca <- rownames(pca_data)  # Supondo que as amostras de PCA tenham um identificador de linha
-identificadores_tsne <- tsne_df$Sample  # Supondo que as amostras de t-SNE estão na coluna 'Sample'
-
-# Alinhe as amostras de acordo com o identificador
-pca_data <- pca_data[identificadores_pca %in% identificadores_tsne, ]
-tsne_df <- tsne_df[identificadores_tsne %in% identificadores_pca, ]
-
-# Verifique novamente as dimensões
-dim(pca_data)  # O número de amostras deve ser o mesmo
-dim(tsne_df)   # O número de amostras deve ser o mesmo
-
-# Calcule a correlação entre as PCs do PCA e as duas componentes do t-SNE
-View(scores_df_qc)
-
-# Inicialize o dataframe para armazenar as correlações
-# Obter os componentes principais (scores) do PCA
-pca_scores <- pca_result$x
-
-#ANALpca_rotation_df#ANALISE SEM O QC
+#AANALISE SEM O QC
 
 # Normalizar os dados usando LOESS considerando os QC
 # Aqui, estamos dizendo que as colunas 7 a 9 são as QC
 # Supondo que você tenha uma lista de amostras de controle chamada `qc_samples`
-
-abc <- data_for_pca[,4:39]
+View(data_for_pca)
+abc <- data_for_pca[,c(4:39)]
 View(abc)
 
 # Remover as linhas da matriz
-feature_matrix_without_qc_normalized <- normalizeBetweenArrays(abc, method = "cyclicloess")
+feature_matrix_without_qc_normalized <- apply(abc, 2, normalize_pareto)
 View(feature_matrix_without_qc_normalized)
+summary(pca_result_no_qc)
 
 # Aplicar o PCA (sem controle de qualidade)
 pca_matrix_no_qc <- t(feature_matrix_without_qc_normalized)
 pca_result_no_qc <- prcomp(pca_matrix_no_qc, center = TRUE, scale. = TRUE)
 
 # Criar DataFrame com os scores do PCA
+# Definir rótulos dos grupos primeiro
+group_labels1 <- c("Grupo B", "Grupo C", "Grupo D", "Grupo E", 
+                   "Grupo F", "Grupo G", "Grupo H", "Grupo I", "Grupo J",
+                   "Grupo K", "Grupo L", "Grupo M")
+
 scores_df_no_qc <- as.data.frame(pca_result_no_qc$x)
 scores_df_no_qc$Sample <- rownames(scores_df_no_qc)
-scores_df_no_qc$Group <- factor(rep(1:13, each = 3, length.out = nrow(scores_df_no_qc)))
+scores_df_no_qc$Group <- factor(rep(1:(nrow(scores_df_no_qc) / 3), each = 3, length.out = nrow(scores_df_no_qc)), labels = group_labels1)
+
+# Cores para os grupos
+cores <- c("blue", "green", "purple", "orange", "pink", "cyan", 
+           "brown", "yellow", "magenta", "gray", "darkgreen", "darkblue")
 
 # Plotar o PCA
 ggplot(scores_df_no_qc, aes(x = PC1, y = PC2, color = Group)) +
   geom_point(size = 4) +
-  geom_text(aes(label = Sample), vjust = -1, size = 0) +
+  geom_text(aes(label = Sample), vjust = -1, size = 4) +  # Adiciona nome dos grupos acima dos pontos
   theme_minimal() + 
   ggtitle("PCA - Positive Mode Organic Fase - without Quality Control (QC)") +
   xlab(paste0("PC1 (", round(100 * summary(pca_result_no_qc)$importance[2, 1], 1), "%)")) +
@@ -635,17 +635,11 @@ ggplot(scores_df_no_qc, aes(x = PC1, y = PC2, color = Group)) +
   theme(
     plot.title = element_text(hjust = 0.5),
     panel.grid = element_blank(),
-    legend.text = element_text(size = 8),  # Diminui o tamanho do texto da legenda
-    legend.title = element_text(size = 10), # Ajusta o tamanho do título da legenda
-    legend.background = element_rect(fill = "white", color = "black") # Adiciona a caixa ao redor da legenda
+    legend.text = element_text(size = 8),
+    legend.title = element_text(size = 10),
+    legend.background = element_rect(fill = "white", color = "black")
   ) +
-  scale_color_manual(
-    name = "Sample Group",  
-    values = c(
-      "blue", "green", "purple", "orange", "pink", "cyan", 
-      "brown", "yellow", "magenta", "gray", "darkgreen", "darkblue","gold"),
-    labels = scores_df_no_qc$Sample[seq(1, length(scores_df_no_qc$Sample), by = 3)] 
-  )
+  scale_color_manual(name = "Sample Group", values = cores)
 
 # Calcular a soma dos quadrados dentro dos clusters para diferentes k
 
@@ -669,12 +663,12 @@ scores_df_no_qc$Cluster <- as.factor(kmeans_result$cluster)
 ggplot(scores_df_no_qc, aes(x = PC1, y = PC2, color = Cluster, label = Sample)) +
   geom_point(size = 4) +
   geom_text(vjust = -1, size = 4) +  # Diminui o tamanho dos nomes das amostras
-  stat_ellipse(geom = "polygon", alpha = 0.2) +
+  stat_ellipse(geom = "polygon", alpha = 0.2, level = 0.95) +
   theme_minimal() +
   ggtitle("K-means Clustering in PCA - Organic Positive Mode (Without QC)") +
   xlab(paste0("PC1 (", round(100 * summary(pca_result_no_qc)$importance[2, 1], 1), "%)")) +
   ylab(paste0("PC2 (", round(100 * summary(pca_result_no_qc)$importance[2, 2], 1), "%)")) +
-  scale_color_manual(values = c("orange", "blue", "magenta", "firebrick")) +
+  scale_color_manual(values = c("blue", "magenta", "firebrick")) +
   theme(
     plot.title = element_text(hjust = 0.5),
     panel.grid = element_blank(),
@@ -705,7 +699,7 @@ loadings_pc1_pc2_amostral <- loadings_df_amostral[, c("PC1", "PC2", "Feature")]
 
 # Selecionar os 10 m/z com maior contribuição (pela soma dos valores absolutos de PC1 e PC2)
 loadings_pc1_pc2_amostral$Importance <- abs(loadings_pc1_pc2_amostral$PC1) + abs(loadings_pc1_pc2_amostral$PC2)
-top100_loadings_amostras <- loadings_pc1_pc2_amostral[order(-loadings_pc1_pc2_amostral$Importance), ][1:5, ]
+top100_loadings_amostras <- loadings_pc1_pc2_amostral[order(-loadings_pc1_pc2_amostral$Importance), ][1:10, ]
 top100_loadings_amostras$Feature <- sub("^X", "", top100_loadings_amostras$Feature)
 
 # Criar o gráfico com apenas os 10 m/z mais importante eabsa jd as
@@ -718,7 +712,7 @@ ggplot(top100_loadings_amostras, aes(x = PC1, y = PC2, color = Feature)) +
                size = 1) +
   scale_color_manual(values = rainbow(length(top100_loadings_amostras$Feature))) +  # Escolhe cores para cada Feature
   theme_minimal() +
-  ggtitle("Loadings - Top 20 m/z (PC1 vs PC2) without QC") +
+  ggtitle("Loadings - Top 10 m/z (PC1 vs PC2) without QC") +
   xlab("PC1 Loadings") +
   ylab("PC2 Loadings") +
   theme(legend.position = "right",    # Mantém a legenda
@@ -803,24 +797,32 @@ feature_matrix_org_values_real <- feature_matrix_without_cb[,-c(25:27)]
 View(feature_matrix_org_values_real)
 
 
-feature_matrix_org_values_real2 <- normalizeBetweenArrays(feature_matrix_org_values_real, method = "cyclicloess")
-View(feature_matrix_org_values_real2)
+feature_matrix_org_values_real <- apply(feature_matrix_org_values_real, 2, normalize_pareto)
+View(feature_matrix_org_values_real)
 
 # Aplicar o PCA (sem controle de qualidade)
-pca_org_values <- t(feature_matrix_org_values_real2)
+pca_org_values <- t(feature_matrix_org_values_real)
 pca_result_org <- prcomp(pca_org_values, center = TRUE, scale = TRUE)
+
+
+group_labels2 <- c("Grupo E", "Grupo F", "Grupo G", "Grupo H", "Grupo I", "Grupo J",
+                   "Grupo K", "Grupo L")
 
 # Criar DataFrame com os scores do PCA
 scores_df_org <- as.data.frame(pca_result_org$x)
 scores_df_org$Sample <- rownames(scores_df_org)
-scores_df_org$Group <- factor(rep(1:8, each = 3, length.out = nrow(scores_df_org)))
+scores_df_org$Group <- factor(rep(1:(nrow(scores_df_org) / 3), each = 3, length.out = nrow(scores_df_org)), labels = group_labels2)
+
+# Cores para os grupos
+cores3 <- c("firebrick", "wheat2", 
+           "maroon4", "yellow", "magenta", "darkkhaki", "darkgreen", "chocolate")
 
 # Plotar o PCA
 ggplot(scores_df_org, aes(x = PC1, y = PC2, color = Group)) +
   geom_point(size = 4) +
-  geom_text(aes(label = Sample), vjust = -1, size = 2) +
+  geom_text(aes(label = Sample), vjust = -1, size = 4) +
   theme_minimal() + 
-  ggtitle(label = "PCA") +
+  ggtitle(label = "PCA with Organic Samples") +
   xlab(paste0("PC1 (", round(100 * summary(pca_result_org)$importance[2, 1], 1), "%)")) +
   ylab(paste0("PC2 (", round(100 * summary(pca_result_org)$importance[2, 2], 1), "%)"))+
   theme(
@@ -830,12 +832,9 @@ ggplot(scores_df_org, aes(x = PC1, y = PC2, color = Group)) +
     legend.title = element_text(size = 10), # Ajusta o tamanho do título da legenda
     legend.background = element_rect(fill = "white", color = "black") # Adiciona a caixa ao redor da legenda
   ) +
-  scale_color_manual(
-    name = "Sample Group",  
-    values = c(
-     "pink", "cyan", "brown", "black", "gray", "darkgreen", "darkblue","gold"),
-    labels = scores_df_org$Sample[seq(1, length(scores_df_org$Sample), by = 3)] 
-)
+  scale_color_manual(name = "Sample Group", values = cores3)
+
+colours()
 
 # Calcular a soma dos quadrados dentro dos clusters para diferentes k
 
@@ -850,7 +849,7 @@ plot(1:10, wcss, type = "b", pch = 19, col = "blue",
      main = "Método do Cotovelo")
 
 set.seed(123) # Garantir reprodutibilidade
-k <- 3 # Suponha que escolhemos 3 clusters com base no método do cotovelo
+k <- 2 # Suponha que escolhemos 3 clusters com base no método do cotovelo
 kmeans_result <- kmeans(scores_df_org[, c("PC1", "PC2")], centers = k, nstart = 25)
 
 # Adicionar os clusters ao DataFrame
@@ -864,7 +863,7 @@ ggplot(scores_df_org, aes(x = PC1, y = PC2, color = Cluster, label = Sample)) +
   ggtitle("K-means Clustering in PCA - Positive Mode Organic Fase - 8 different toasts") +
   xlab(paste0("PC1 (", round(100 * summary(pca_result_org)$importance[2, 1], 1), "%)")) +
   ylab(paste0("PC2 (", round(100 * summary(pca_result_org)$importance[2, 2], 1), "%)")) +
-  scale_color_manual(values = c( "magenta", "firebrick","cyan")) +
+  scale_color_manual(values = c( "magenta", "firebrick")) +
   theme(
     plot.title = element_text(hjust = 0.5),
     panel.grid = element_blank(),
@@ -883,7 +882,7 @@ hclust_result <- hclust(dist_matrix, method = "ward.D2")
 plot(hclust_result, main = "Dendrogram - Organic Samples", 
      xlab = "Samples", sub = "", cex = 0.8)
 
-rect.hclust(hclust_result, k = 4, border = "turquoise")
+rect.hclust(hclust_result, k = 2, border = "brown")
 
 #Loadings
 
@@ -895,7 +894,7 @@ loadings_pc1_pc2_org <- loadings_df_org[, c("PC1", "PC2", "Feature")]
 
 # Selecionar os 100 m/z com maior contribuição (pela soma dos valores absolutos de PC1 e PC2)
 loadings_pc1_pc2_org$Importance <- abs(loadings_pc1_pc2_org$PC1) + abs(loadings_pc1_pc2_org$PC2)
-top100_loadings_org <- loadings_pc1_pc2_org[order(-loadings_pc1_pc2_org$Importance), ][1:5, ]
+top100_loadings_org <- loadings_pc1_pc2_org[order(-loadings_pc1_pc2_org$Importance), ][1:10, ]
 top100_loadings_org$Feature <- sub("^X", "", top100_loadings_org$Feature)
 
 # Criar o gráfico com apenas os 10 m/z mais importantes
@@ -907,7 +906,7 @@ ggplot(top100_loadings_org, aes(x = PC1, y = PC2, color = Feature)) +
                size = 1) +
   scale_color_manual(values = rainbow(length(top100_loadings_org$Feature))) +  # Escolhe cores para cada Feature
   theme_minimal() +
-  ggtitle("Loadings - Top 20 m/z - 8 different roasted") +
+  ggtitle("Loadings - Top 10 m/z - 8 different roasted") +
   xlab("PC1 Loadings") +
   ylab("PC2 Loadings") +
   theme(legend.position = "right",    
@@ -987,40 +986,40 @@ ggplot(tsne_df2, aes(x = tSNE1, y = tSNE2, color = Cluster)) +
   ylab("t-SNE 2") +
   theme(plot.title = element_text(hjust = 0.5))
 
-
-
-
-
-
-
-
-
-
-
 #PCA Torra média
 
 View(data_for_pca)
 feature_matrix_torramedia <- data_for_pca[, c(7,8,9,10,11,12,22,23,24,25,26,27,28,29,30,37,38,39)]
 View(feature_matrix_torramedia)
 
-feature_matrix_matrix_torramedia <- normalizeBetweenArrays(feature_matrix_torramedia, method = "cyclicloess")
-View(feature_matrix_matrix_torramedia)
+feature_matrix_torramedia <- apply(feature_matrix_torramedia, 2, normalize_pareto)
+View(feature_matrix_torramedia)
 
 # Aplicar o PCA 
-pca_torramedia <- t(feature_matrix_matrix_torramedia)
+pca_torramedia <- t(feature_matrix_torramedia)
 pca_torramedia <- prcomp(pca_torramedia, center = TRUE, scale = TRUE)
 
 # Criar DataFrame com os scores do PCA
 scores_df_torramedia <- as.data.frame(pca_torramedia$x)
 scores_df_torramedia$Sample <- rownames(scores_df_torramedia)
-scores_df_torramedia$Group <- factor(rep(1:6, each = 3, length.out = nrow(scores_df_torramedia)))
+
+#ARRUMANDO
+group_labels3 <- c("Grupo C", "Grupo D", "Grupo H", "Grupo I", "Grupo K", "Grupo M")
+
+
+scores_df_torramedia$Group <- factor(rep(1:(nrow(scores_df_torramedia) / 3), each = 3, length.out = nrow(scores_df_torramedia)), labels = group_labels3)
+
+# Cores para os grupos
+cores5 <- c("firebrick", "black", 
+            "darkblue", "darkkhaki", "darkgreen", "chocolate")
+
 
 # Plotar o PCA
 ggplot(scores_df_torramedia, aes(x = PC1, y = PC2, color = Group)) +
   geom_point(size = 4) +
-  geom_text(aes(label = Sample), vjust = -1, size = 2) +
+  geom_text(aes(label = Sample), vjust = -1, size = 3.5) +
   theme_minimal() + 
-  ggtitle("PCA") +
+  ggtitle("PCA for medium coffee roasts") +
   xlab(paste0("PC1 (", round(100 * summary(pca_torramedia)$importance[2, 1], 1), "%)")) +
   ylab(paste0("PC2 (", round(100 * summary(pca_torramedia)$importance[2, 2], 1), "%)")) +
   theme(
@@ -1032,8 +1031,7 @@ ggplot(scores_df_torramedia, aes(x = PC1, y = PC2, color = Group)) +
   ) +
   scale_color_manual(
     name = "Sample Group",  
-    values = c("black", "gray", "darkgreen", "darkblue", "gold", "firebrick")
-  )
+    values = cores5)
 
 
 # Calcular a soma dos quadrados dentro dos clusters para diferentes k
@@ -1051,7 +1049,7 @@ plot(1:10, wcss, type = "b", pch = 19, col = "blue",
 
 set.seed(123) # Garantir reprodutibilidade
 k <- 3 # Suponha que escolhemos 3 clusters com base no método do cotovelo
-kmeans_result <- kmeans(scores_df_torramedia[, c("PC1", "PC2")], centers = k, nstart = 25)
+kmeans_result <- kmeans(scores_df_torramedia[, c("PC1", "PC2","PC3","PC4")], centers = k, nstart = 25)
 
 # Adicionar os clusters ao DataFrame
 scores_df_torramedia$Cluster <- as.factor(kmeans_result$cluster)
@@ -1059,9 +1057,9 @@ scores_df_torramedia$Cluster <- as.factor(kmeans_result$cluster)
 ggplot(scores_df_torramedia, aes(x = PC1, y = PC2, color = Cluster, label = Sample)) +
   geom_point(size = 4) +
   geom_text(vjust = -1, size = 4) +  # Diminui o tamanho dos nomes das amostras
-  stat_ellipse(geom = "polygon", alpha = 0.2) +
+  stat_ellipse(geom = "polygon", alpha = 0.2, level = 0.95) +
   theme_minimal() +
-  ggtitle(label = "K-means Clustering in PCA - Positive Mode Organic Fase - 8 different toasts") +
+  ggtitle(label = "K-means Clustering in PCA - Positive Mode Organic Fase - for medium coffee roasts") +
   xlab(paste0("PC1 (", round(100 * summary(pca_torramedia)$importance[2, 1], 1), "%)")) +
   ylab(paste0("PC2 (", round(100 * summary(pca_torramedia)$importance[2, 2], 1), "%)")) +
   scale_color_manual(values = c("magenta", "firebrick","gold")) +
@@ -1080,10 +1078,10 @@ dist_matrix <- dist(scores_df_torramedia[, c("PC1", "PC2", "PC3", "PC4")])
 hclust_result <- hclust(dist_matrix, method = "ward.D2")
 
 # Plotar o dendrograma
-plot(hclust_result, main = "Dendrogram - Organic Samples", 
+plot(hclust_result, main = "Dendrogram - for medium coffee roasts", 
      xlab = "Samples", sub = "", cex = 0.8)
 
-rect.hclust(hclust_result, k = 3, border = "turquoise")
+rect.hclust(hclust_result, k = 3, border = "chocolate")
 
 #Loadings
 
@@ -1095,7 +1093,7 @@ loadings_pc1_pc2_torramedia <- loadings_df_torramedia[, c("PC1", "PC2", "Feature
 
 # Selecionar os 100 m/z com maior contribuição (pela soma dos valores absolutos de PC1 e PC2)
 loadings_pc1_pc2_torramedia$Importance <- abs(loadings_pc1_pc2_torramedia$PC1) + abs(loadings_pc1_pc2_torramedia$PC2)
-top20_loadings_torramedia <- loadings_pc1_pc2_org[order(-loadings_pc1_pc2_torramedia$Importance), ][1:5, ]
+top20_loadings_torramedia <- loadings_pc1_pc2_org[order(-loadings_pc1_pc2_torramedia$Importance), ][1:10, ]
 top20_loadings_torramedia$Feature <- sub("^X", "", top20_loadings_torramedia$Feature)
 
 # Criar o gráfico com apenas os 10 m/z mais importantes
@@ -1107,7 +1105,7 @@ ggplot(top20_loadings_torramedia, aes(x = PC1, y = PC2, color = Feature)) +
                size = 1) +
   scale_color_manual(values = rainbow(length(top20_loadings_torramedia$Feature))) +  # Escolhe cores para cada Feature
   theme_minimal() +
-  ggtitle("Loadings - Top 20 m/z - 8 different roasted") +
+  ggtitle("Loadings - Top 10 m/z - for medium coffee roasts") +
   xlab("PC1 Loadings") +
   ylab("PC2 Loadings") +
   theme(legend.position = "right",    
@@ -1168,210 +1166,19 @@ kmeans_result3 <- kmeans(tsne_result3$Y, centers = 3)
 tsne_df3 <- data.frame(
   tSNE1 = tsne_result3$Y[, 1],
   tSNE2 = tsne_result3$Y[, 2],
-  Cluster = factor(kmeans_result1$cluster))
+  Cluster = factor(kmeans_result3$cluster))
 
 tsne_df3$Sample <- scores_df_torramedia$Sample
 
 
 # Visualizando com ggplot2 e adicionando elipses
 ggplot(tsne_df3, aes(x = tSNE1, y = tSNE2, color = Cluster)) +
-  geom_point(size = 4) +  # Adiciona os pontos
-  geom_text(aes(label = Sample), vjust = -1, size = 3) +  # Adiciona os nomes das amostras
+  geom_point(size = 6) +  # Adiciona os pontos
+  geom_text(aes(label = Sample), vjust = -1, size = 3.5) +  # Adiciona os nomes das amostras
+  stat_ellipse(geom = "polygon", alpha = 0.2, level = 0.95)
   theme_minimal() +
-  ggtitle("t-SNE com K-means e Elipses de Agrupamento") +
+  ggtitle("t-SNE for medium coffee roasts") +
   xlab("t-SNE 1") +
   ylab("t-SNE 2") +
   theme(plot.title = element_text(hjust = 0.5))
-
-
-
-
-
-
-
-
-
-#Supondo que eu queria visualizar os espectros os top 10 loadings
-
-sps_sciex <- Spectra(files, source = MsBackendMzR())
-length(sps_sciex)
-spectraVariables(sps_sciex)
-View(sps_sciex)
-
-spectra_df <- data.frame(mz = mz(sps_sciex), intensity = intensity(sps_sciex))
-head(spectra_df)
-View(spectra_df)
-
-library(dplyr)
-spectra_filtered <- spectra_df %>%
-  group_by(mz.group) %>%
-  slice_tail(n = 1) %>%  # 
-  ungroup()
-View(spectra_filtered)
-
-#Plotando um espectro aleatorio
-plotSpectra(sps_sciex[28246])
-
-# Definir os m/z para filtrar (top loadings)
-mz_to_plot <- c(564.4401)
-
-# Filtrando os espectros para m/z específicos
-selected_spectra <- sps_sciex[sapply(sps_sciex, function(x) any(mz(x) %in% mz_to_plot))]
-
-#Plotando eles lado a lado
-plotSpectra(selected_spectra)
-
-# Usar plotSpectraOverlay para plotar os espectros sobrepostos
-colors <- c("bisque", "mediumpurple3", "tomato1", "yellowgreen")
-
-plotSpectraOverlay(selected_spectra,
-                   main = "Picos Selecionados sobrepostos",
-                   xlab = "m/z", 
-                   ylab = "Intensidade",
-                   col = colors)
-
-legend("topright", 
-       legend = c("mz 1", "mz 2", "mz 3", "mz 4"), 
-       col = c(colors), 
-       lty = 1, 
-       lwd = 2, 
-       bty = "n")  
-
-# Supondo que feature_matrix_withqc é o seu conjunto de dados com QC e amostras
-# Como exemplo, vou criar uma matriz fictícia com o mesmo formato
-# feature_matrix_withqc <- <sua matriz de dados>
-
-amostras <- c(rep("Organico", 9), rep("Tradicional", 3), rep("Organico", 24), rep("Tradicional", 3))
-
-# Imprime o vetor de rótulos
-print(amostras)
-
-# Divisão dos dados (verifique se trainIndex está correto)
-set.seed(123)
-trainIndex <- createDataPartition(amostras, p = 0.66, list = FALSE, times = 1)
-X_train <- pca_matrix_no_qc[trainIndex, ]
-Y_train <- amostras[trainIndex]
-X_test <- pca_matrix_no_qc[-trainIndex, ]
-Y_test <- amostras[-trainIndex]
-
-# Verifique e converta Y_train para fator
-if (!is.factor(Y_train)) {
-  Y_train <- as.factor(Y_train)
-}
-
-# Crie o modelo PLS-DA
-pls_model <- plsda(X_train, Y_train, ncomp = 10)
-
-# Faça previsões
-Y_pred <- predict(pls_model, X_test, ncomp = 10, type = "prob")
-Y_pred_class <- apply(Y_pred, 1, which.max)
-Y_pred_class <- levels(Y_train)[Y_pred_class]
-
-# Gere a tabela de confusão
-conf_matrix <- table(predicted = Y_pred_class, actual = Y_test)
-print(conf_matrix)
-
-conf_matrix <- matrix(c(16, 0, 3, 3), nrow = 2, byrow = TRUE,
-                      dimnames = list(c("Organico", "Tradicional"),
-                                      c("Organico", "Tradicional")))
-
-# Precisão (Organico)
-precisao_organico <- conf_matrix[1, 1] / sum(conf_matrix[1, ])
-print(paste("Precisão (Organico):", precisao_organico))
-
-# Revocação (Organico)
-revocacao_organico <- conf_matrix[1, 1] / sum(conf_matrix[, 1])
-print(paste("Revocação (Organico):", revocacao_organico))
-
-# F1-Score (Organico)
-f1_organico <- 2 * (precisao_organico * revocacao_organico) / (precisao_organico + revocacao_organico)
-print(paste("F1-Score (Organico):", f1_organico))
-
-# Precisão (Tradicional)
-precisao_tradicional <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
-print(paste("Precisão (Tradicional):", precisao_tradicional))
-
-# Revocação (Tradicional)
-revocacao_tradicional <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
-print(paste("Revocação (Tradicional):", revocacao_tradicional))
-
-# F1-Score (Tradicional)
-f1_tradicional <- 2 * (precisao_tradicional * revocacao_tradicional) / (precisao_tradicional + revocacao_tradicional)
-print(paste("F1-Score (Tradicional):", f1_tradicional))
-
-# Como exemplo, vou criar uma matriz fictícia com o mesmo formato
-# por torras
-
-View(pca_matrix_no_qc)
-print(files)
-matrix_plc_torra <- pca_matrix_no_qc[-c(7:9),]
-View(matrix_plc_torra)
-amostrasorg <- c(rep("Escura", 3), rep("Media", 6), rep("Escura", 9), rep("Media", 9), rep("Clara", 6), rep("Escura", 3))
-
-# Imprime o vetor de rótulos
-print(amostrasorg)
-
-# Divisão dos dados (verifique se trainIndex está correto)
-set.seed(123)
-trainIndex <- createDataPartition(amostrasorg, p = 0.50, list = FALSE, times = 1)
-X_train1 <- matrix_plc_torra[trainIndex, ]
-Y_train1 <- amostrasorg[trainIndex]
-X_test1 <- matrix_plc_torra[-trainIndex, ]
-Y_test1 <- amostrasorg[-trainIndex]
-
-# Verifique e converta Y_train para fator
-if (!is.factor(Y_train1)) {
-  Y_train1 <- as.factor(Y_train1)
-}
-
-# Crie o modelo PLS-DA
-pls_model1 <- plsda(X_train1, Y_train1, ncomp = 10)
-
-# Faça previsões
-Y_pred1 <- predict(pls_model1, X_test1, ncomp = 10, type = "prob")
-Y_pred_class1 <- apply(Y_pred1, 1, which.max)
-Y_pred_class1 <- levels(Y_train1)[Y_pred_class1]
-
-# Gere a tabela de confusão
-conf_matrix_torra <- table(predicted = Y_pred_class1, actual = Y_test1)
-print(conf_matrix_torra)
-
-# Precisão (Escura)
-precisao_escura <- conf_matrix_torra[1, 1] / sum(conf_matrix_torra[1, ])
-print(paste("Precisão (Escura):", precisao_escura))
-
-# Revocação (Escura)
-revocacao_escura <- conf_matrix_torra[1, 1] / sum(conf_matrix_torra[1, ])
-print(paste("Revocação (Escura):", revocacao_escura))
-
-# F1-Score (Escura)
-f1_escura <- 2 * (precisao_escura * revocacao_escura) / (precisao_escura + revocacao_escura)
-print(paste("F1-Score (Escura):", f1_escura))
-
-# Precisão (Média)
-precisao_media <- conf_matrix_torra[2, 2] / sum(conf_matrix_torra[2, ])
-print(paste("Precisão (Media):", precisao_escura))
-
-# Revocação (Media)
-revocacao_media <- conf_matrix_torra[2, 2] / sum(conf_matrix_torra[2, ])
-print(paste("Revocação (Media):", revocacao_media))
-
-# F1-Score (Media)
-f1_media <- 2 * (precisao_media * revocacao_media) / (precisao_media+ revocacao_media)
-print(paste("F1-Score (Media):", f1_media))
-
-# Precisão (Clara)
-precisao_clara <- conf_matrix_torra[3, 3] / sum(conf_matrix_torra[3, ])
-print(paste("Precisão (Clara):", precisao_clara))
-
-# Revocação (Clara)
-revocacao_clara <- conf_matrix_torra[3, 3] / sum(conf_matrix_torra[3, ])
-print(paste("Revocação (Clara):", revocacao_clara))
-
-# F1-Score (Clara)
-f1_clara <- 2 * (precisao_clara * revocacao_clara) / (precisao_clara + revocacao_clara)
-print(paste("F1-Score (Clara):", f1_clara))
-
-#MONA POSITIVO
-
 
